@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "417222072277",
+    "project_id": "mturobotcontroller-1d7d9",
+    "storage_bucket": "mturobotcontroller-1d7d9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:417222072277:android:4cd0a4335fe2313e504f5c",
+        "android_client_info": {
+          "package_name": "com.example.mtu"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyClUMogNYhLMvvDYAnqPw0_qgCOiPK2TQk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
