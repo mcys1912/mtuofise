@@ -118,6 +118,7 @@ class _AuthScreenState extends State<AuthScreen>
 
   @override
   Widget build(BuildContext context) {
+    final iconSize = ResponsiveHelper.getSplashIconSize(context);
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -165,9 +166,11 @@ class _AuthScreenState extends State<AuthScreen>
                           children: [
                             SizedBox(
                               height: 120,
-                              child: Lottie.network(
-                                'https://lottie.host/ad95e7c3-f5a2-4f99-8d1d-56f64b8e45c5/eOdHMvtEYw.json',
-                                repeat: true,
+                              child: Image.asset(
+                                'assets/images/robot_image.png',
+                                width: iconSize,
+                                height: iconSize,
+                                fit: BoxFit.contain,
                               ),
                             ),
                             const SizedBox(height: 24),

@@ -14,15 +14,14 @@ class _RobotControlScreenState extends State<RobotControlScreen> {
   final _database = FirebaseDatabase.instance.ref();
   List<double> _servoAngles = [90, 90, 90, 90];
   bool _isDragging = false;
-  Map<int, Map<String, double>> _lastJoystickPositions = {
-    0: {'x': 0, 'y': 0},
-    2: {'x': 0, 'y': 0},
-  };
+  bool _isSystemActive = false;
+  String _controlMode = 'manuel';
 
   @override
   void initState() {
     super.initState();
     _listenToFirebase();
+    _listenToSystemStatus();
   }
 
   void _listenToFirebase() {
@@ -38,6 +37,22 @@ class _RobotControlScreenState extends State<RobotControlScreen> {
           ];
         });
       }
+    });
+  }
+
+  void _listenToSystemStatus() {
+    _database.child('sistem_aktif').onValue.listen((event) {
+      final bool? isActive = event.snapshot.value as bool?;
+      setState(() {
+        _isSystemActive = isActive ?? false;
+      });
+    });
+
+    _database.child('control_mode').onValue.listen((event) {
+      final String? mode = event.snapshot.value as String?;
+      setState(() {
+        _controlMode = mode ?? 'manuel';
+      });
     });
   }
 
@@ -301,8 +316,153 @@ class _RobotControlScreenState extends State<RobotControlScreen> {
     );
   }
 
+  Widget _buildSystemStatus() {
+    final isSmallScreen = MediaQuery.of(context).size.width < 600;
+    final cardWidth = isSmallScreen
+        ? ResponsiveHelper.getWidth(context) * 0.9
+        : ResponsiveHelper.getWidth(context) * 0.6;
+
+    return Center(
+      child: Container(
+        width: cardWidth,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+              spreadRadius: 0,
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Text(
+                'Sistem Durumu',
+                style: TextStyle(
+                  fontSize: isSmallScreen ? 13 : 15,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.blue.shade900,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
+            // Başlık ve Durum Bilgileri
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // ESP Durumu
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: _isSystemActive
+                        ? Colors.green.withOpacity(0.1)
+                        : Colors.red.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: _isSystemActive ? Colors.green : Colors.red,
+                          boxShadow: [
+                            BoxShadow(
+                              color:
+                                  (_isSystemActive ? Colors.green : Colors.red)
+                                      .withOpacity(0.3),
+                              blurRadius: 4,
+                              spreadRadius: 1,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        _isSystemActive ? 'ESP Aktif' : 'ESP Devre Dışı',
+                        style: TextStyle(
+                          fontSize: isSmallScreen ? 11 : 13,
+                          fontWeight: FontWeight.w500,
+                          color: _isSystemActive
+                              ? Colors.green.shade700
+                              : Colors.red.shade700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Kontrol Modu
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        _controlMode == 'otomatik'
+                            ? Icons.auto_mode
+                            : Icons.gamepad,
+                        size: isSmallScreen ? 14 : 16,
+                        color: Colors.blue.shade700,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        _controlMode.toUpperCase(),
+                        style: TextStyle(
+                          fontSize: isSmallScreen ? 11 : 13,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.blue.shade700,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Transform.scale(
+                        scale: isSmallScreen ? 0.6 : 0.7,
+                        child: Switch(
+                          value: _controlMode == 'otomatik',
+                          activeColor: Colors.blue.shade600,
+                          activeTrackColor: Colors.blue.shade200,
+                          inactiveThumbColor: Colors.grey.shade400,
+                          inactiveTrackColor: Colors.grey.shade200,
+                          onChanged: (bool value) {
+                            final newMode = value ? 'otomatik' : 'manuel';
+                            _database.child('control_mode').set(newMode);
+                            setState(() {
+                              _controlMode = newMode;
+                            });
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isSmallScreen = MediaQuery.of(context).size.width < 600;
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -310,7 +470,7 @@ class _RobotControlScreenState extends State<RobotControlScreen> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Colors.blue.shade100,
+              Colors.blue.shade50,
               Colors.white,
               Colors.blue.shade50,
             ],
@@ -320,57 +480,60 @@ class _RobotControlScreenState extends State<RobotControlScreen> {
           child: Column(
             children: [
               Container(
+                height: isSmallScreen ? 52 : 60,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
                       Colors.blue.shade400,
-                      Colors.blue.shade300,
+                      Colors.blue.shade500,
                     ],
-                  ),
-                  borderRadius: const BorderRadius.only(
-                    bottomLeft: Radius.circular(25),
-                    bottomRight: Radius.circular(25),
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 10,
-                      spreadRadius: 2,
+                      color: Colors.blue.shade200.withOpacity(0.5),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                      spreadRadius: 0,
                     ),
                   ],
                 ),
-                child: AppBar(
-                  title: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.white.withOpacity(0.15),
+                        Colors.white.withOpacity(0.05),
+                      ],
+                    ),
+                  ),
+                  child: Stack(
+                    alignment: Alignment.center,
                     children: [
-                      Icon(
-                        Icons.precision_manufacturing_rounded,
-                        color: Colors.white,
-                        size: ResponsiveHelper.isMobile(context) ? 24 : 28,
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        'Robot Kontrol',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize:
-                              ResponsiveHelper.isMobile(context) ? 20 : 24,
-                          color: Colors.white,
-                          letterSpacing: 1,
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.precision_manufacturing_rounded,
+                            color: Colors.white.withOpacity(0.95),
+                            size: isSmallScreen ? 18 : 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Robot Kontrol',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.95),
+                              fontSize: isSmallScreen ? 16 : 18,
+                              fontWeight: FontWeight.w500,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
-                  ),
-                  centerTitle: true,
-                  backgroundColor: Colors.transparent,
-                  elevation: 0,
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.only(
-                      bottomLeft: Radius.circular(25),
-                      bottomRight: Radius.circular(25),
-                    ),
                   ),
                 ),
               ),
@@ -379,6 +542,7 @@ class _RobotControlScreenState extends State<RobotControlScreen> {
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
+                      _buildSystemStatus(),
                       _buildJoystickSection(),
                       const SizedBox(height: 20),
                       _buildSliders(),
